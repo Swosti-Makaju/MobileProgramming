@@ -1,0 +1,208 @@
+MyApp.java
+
+package com.example.hellomobile;
+
+import android.app.Application;
+
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
+
+public class MyApp extends Application {
+    private static RequestQueue requestQueue;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        requestQueue = Volley.newRequestQueue(this);
+    }
+
+    public static RequestQueue getRequestQueue() {
+        return requestQueue;
+    }
+}
+
+ApiLabActivity.java
+
+import androidx.recyclerview.widget.*;
+import com.android.volley.*;
+import org.json.*;
+import java.util.*;
+public class ApiLabActivity extends AppCompatActivity {
+    private static final String URL = "https://jsonplaceholder.typicode.com/users";
+    private UserAdapter adapter;
+    private List<User> userList;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_api_lab);
+
+        RecyclerView recyclerView = findViewById(R.id.recyclerViewApiLab);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        userList = new ArrayList<>();
+        adapter = new UserAdapter(userList);
+        recyclerView.setAdapter(adapter);
+
+        fetchUsers();
+    }
+
+    private void fetchUsers() {
+        RequestQueue requestQueue = MyApp.getRequestQueue();
+
+        JsonArrayRequest jsonArrayRequest = new JsonArrayRequest(
+                Request.Method.GET,
+                URL,
+                null,
+                response -> {
+                    for (int i = 0; i < response.length(); i++) {
+                        try {
+                            JSONObject userObject = response.getJSONObject(i);
+                            int id = userObject.getInt("id");
+                            String name = userObject.getString("name");
+                            String email = userObject.getString("email");
+
+                            userList.add(new User(id, name, email));
+                        } catch (JSONException e) {
+                            Log.e("API_LAB", "JSON parsing error", e);
+                        }
+                    }
+                    adapter.notifyDataSetChanged();
+                },
+                error -> {
+                    Log.e("API_LAB_ERROR", error.toString());
+                    Toast.makeText(ApiLabActivity.this, "Failed to fetch data", Toast.LENGTH_SHORT).show();
+                }
+        );
+
+        requestQueue.add(jsonArrayRequest);
+    }
+}
+
+activity_api_lab.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewApiLab"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+
+User.java
+
+public class User {
+    private int id;
+    private String name;
+    private String email;
+
+    public User(int id, String name, String email) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+}
+
+UserAdapter.java
+
+import android.view.*;
+import android.widget.*;
+import androidx.recyclerview.widget.*;
+import com.example.hellomobile.R;
+
+public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder> {
+
+    private List<User> userList;
+
+    public UserAdapter(List<User> userList) {
+        this.userList = userList;
+    }
+
+    @NonNull
+    @Override
+    public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user, parent, false);
+        return new UserViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull UserViewHolder holder, int position) {
+        User user = userList.get(position);
+        holder.userName.setText(user.getName());
+        holder.userEmail.setText(user.getEmail());
+    }
+
+    @Override
+    public int getItemCount() {
+        return userList.size();
+    }
+
+    static class UserViewHolder extends RecyclerView.ViewHolder {
+        TextView userName, userEmail;
+
+        public UserViewHolder(@NonNull View itemView) {
+            super(itemView);
+            userName = itemView.findViewById(R.id.userName);
+            userEmail = itemView.findViewById(R.id.userEmail);
+        }
+    }
+}
+
+Item_user.xml
+
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/userName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
+
+        <TextView
+            android:id="@+id/userEmail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
